@@ -11,7 +11,7 @@ package algorithms_go
 		2.2 希尔排序
 	3. 选择排序
 		3.1 简单选择排序
-		3.2 堆排序
+		3.2 堆排序(完全二叉树)
 	4. 归并排序或者合并排序
 	5. 基数排序
 	6. 桶排序
@@ -285,8 +285,23 @@ public static void SimpleSelectSort(this int[] arry)
 
 */
 /**
-3.2 堆排序
-堆排序(Heapsort)是指利用堆积树（堆）这种数据结构所设计的一种排序算法，它是选择排序的一种。可以利用数组的特点快速定位指定索引的元素。堆分为大根堆和小根堆，是完全二叉树。大根堆的要求是每个节点的值都不大于其父节点的值，即A[PARENT[i]] >= A[i]。在数组的非降序排序中，需要使用的就是大根堆，因为根据大根堆的要求可知，最大的值一定在堆顶。
+3.2 堆排序（完全二叉树）
+	参考链接：https://www.topgoer.com/Go高级/堆.html
+	堆排序(Heapsort)是指利用堆积树（堆）这种数据结构所设计的一种排序算法，它是选择排序的一种。可以利用数组的特点快速定位指定索引的元素。
+	堆分为大根堆和小根堆，是完全二叉树。大根堆的要求是每个节点的值都不大于其父节点的值，即A[PARENT[i]] >= A[i]。
+	在数组的非降序排序中，需要使用的就是大根堆，因为根据大根堆的要求可知，最大的值一定在堆顶。
+
+	用途：
+		实现快速排序
+		查找最大值或者最小值
+	应用场景：
+		优先级队列
+			合并小文件
+			高性能定时器
+		TopK问题
+			维护一个大小为K的小顶堆，如果新来的元素比它大，就删除堆顶插入这个元素，小于这个元素不做处理
+		中位数问题
+			维护两个堆，一个大顶堆，一个小顶堆，可以是一半一半，或者某个特定百分比。在插入完成后调整比例。两个杯子相互倒水
 
 代码实现
 /// <summary>
@@ -339,6 +354,143 @@ public static void SimpleSelectSort(this int[] arry)
             arry[parent] = temp;
         }
 
+
+// 实现方式二：
+package heap
+
+import (
+    "fmt"
+)
+
+type Node struct {
+    Value int
+    Key   string
+}
+
+type Heap struct {
+    list   []*Node
+    length int
+}
+
+//创建堆
+func CreateHeap() {
+    arrList := []int{1, 2, 11, 3, 7, 8, 4, 5}
+    var myHeap Heap
+    myHeap.list = append(myHeap.list, &Node{})
+    for _, value := range arrList {
+        tmp := Node{}
+        tmp.Value = value
+        myHeap.InsertHeap(&tmp)
+    }
+    for {
+        node := myHeap.GetTopHeap()
+        fmt.Println(node)
+    }
+    myHeap.SortHeap(myHeap.list)
+    heapShow(myHeap.list)
+}
+
+//插入堆
+func (h *Heap) InsertHeap(one *Node) {
+    h.list = append(h.list, one)
+    length := len(h.list)
+    h.length = length - 1
+    h.AdjustHeap(h.length)
+}
+
+// 堆排序
+func (h *Heap) SortHeap(heaps []*Node) {
+    length := len(heaps)
+    length = length - 1
+    if length == 1 {
+        return
+    }
+    if length == 2 {
+        h.AdjustHeap(length - 1)
+    }
+    for length > 0 {
+        h.SliceNodeSwap(1, length)
+        length--
+        h.Heapfiy(length, 1)
+    }
+    //反序
+    minPos := 1
+    maxPos := h.length
+    for minPos < maxPos {
+        h.SliceNodeSwap(minPos, maxPos)
+        minPos++
+        maxPos--
+    }
+}
+
+//自下而上调整
+func (h *Heap) AdjustHeap(length int) {
+    if length < 1 {
+        return
+    }
+    if length == 2 {
+        if h.list[length].Value > h.list[length-1].Value {
+            h.SliceNodeSwap(length, length-1)
+        }
+        return
+    }
+    i := length
+    for i/2 > 0 && h.list[i].Value > h.list[i/2].Value {
+        h.SliceNodeSwap(i, i/2)
+        i = i / 2
+    }
+    return
+}
+
+//输出heap
+func heapShow(heaps []*Node) {
+    for one, value := range heaps {
+        fmt.Println(one, value)
+    }
+}
+
+//node slice交换
+func (h *Heap) SliceNodeSwap(i int, j int) {
+    x := h.list[i]
+    h.list[i] = h.list[j]
+    h.list[j] = x
+}
+
+//自上向下堆化
+func (h *Heap) Heapfiy(length int, pos int) {
+    for {
+        maxPos := pos
+        if pos*2 < length && h.list[pos].Value < h.list[pos*2].Value {
+            maxPos = pos * 2
+        }
+        if pos*2+1 < length && h.list[maxPos].Value < h.list[pos*2+1].Value {
+            maxPos = pos*2 + 1
+        }
+        if maxPos == pos {
+            break
+        }
+        h.SliceNodeSwap(pos, maxPos)
+        pos = maxPos
+    }
+}
+
+//获取堆顶
+func (h *Heap) GetTopHeap() *Node {
+    if h.length == 0 {
+        panic("Heap is empty")
+    }
+    top := h.list[1]
+    //堆顶和堆底交换
+    h.SliceNodeSwap(1, len(h.list)-1)
+    length := len(h.list) - 2
+    fmt.Println(length)
+    h.Heapfiy(length, 1)
+    heapShow(h.list)
+    h.list = append(h.list[:length+1], h.list[length+2:]...)
+    h.length--
+    return top
+
+}
 
 
 
@@ -511,8 +663,7 @@ public static void RadixSort(this int[] arry, int array_x = 10, int array_y = 10
 
 /**
 	7.二叉树实现插入排序
-	解析：
-
+	解析：二叉树存储结构=》链式存储结构：用链表节点来存储二叉树中的每个节点。
  */
 type tree struct {
 	value int
